@@ -15,9 +15,14 @@ class ElementAttribute {
 }
 
 class Component {
-    constructor(renderHookId) {
+    constructor(renderHookId, shouldRender = true) {
         this.hookId = renderHookId;
+        if(shouldRender) {
+            this.render();
+        }
     }
+
+    render() {}
 
     createRootElement(tag, cssClasses, attributes) {
         const rootElement = document.createElement(tag);
@@ -30,7 +35,7 @@ class Component {
             }
         }
         document.getElementById(this.hookId).append(rootElement);
-        return this.rootElement;
+        return rootElement;
     }
 }
 
@@ -51,12 +56,17 @@ class ShoppingCart extends Component {
     }
 
     constructor(renderHookId) {
-        super(renderHookId);
+        super(renderHookId, false);
+        this.orderProducts = () => {
+            console.log('Ordering...');
+            console.log(this.items);
+        };
+        this.render();
     }
 
     addProduct(product) {
         const updatedItems = [...this.items];
-        this.items.push(product);
+        updatedItems.push(product);
         this.cartItems = updatedItems;
     }
 
@@ -66,14 +76,17 @@ class ShoppingCart extends Component {
             <h2>Total: \$${0}</h2>
             <button>Order Now!</button>
         `;        
-        this.totalOutput = cartEl.querySelector('h2');        
+        const orderButton = cartEl.querySelector('button');
+        orderButton.addEventListener('click', this.orderProducts);
+        this.totalOutput = cartEl.querySelector('h2');
     }
 }
 
 class ProductItem extends Component {
     constructor(product, renderHookId) {
-        super(renderHookId);
+        super(renderHookId, false);
         this.product = product;
+        this.render();
     }
 
     addToCart() {
@@ -99,42 +112,56 @@ class ProductItem extends Component {
 }
 
 class ProductList extends Component {
-    products = [
-        new Product(
-            'A Pillow',
-            'https://i5.walmartimages.com/asr/486afa09-f825-4a7d-bcfb-b2ba7f8abf91.094c98e89bd0f6832a022bd9d6fcb700.jpeg',
-            'Saints Pillow!',
-            19.89
-        ),
-        new Product(
-            'A Carpet',
-            'https://www.travelsintranslation.com/wp-content/uploads/2021/02/New-Orleans-Saints-NFL-Area-Rug-Living-Room-Rug-Home-US-Decor.jpg',
-            'Saints Carpet',
-            69.95
-        )
-    ];
+    #products = [];
 
     constructor(renderHookId) {
-        super(renderHookId);
+        super(renderHookId, false);
+        this.render();
+        this.fetchProducts();
+    }
+
+    fetchProducts() {
+        this.#products = [
+            new Product(
+                'A Pillow',
+                'https://i5.walmartimages.com/asr/486afa09-f825-4a7d-bcfb-b2ba7f8abf91.094c98e89bd0f6832a022bd9d6fcb700.jpeg',
+                'Saints Pillow!',
+                19.89
+            ),
+            new Product(
+                'A Carpet',
+                'https://www.travelsintranslation.com/wp-content/uploads/2021/02/New-Orleans-Saints-NFL-Area-Rug-Living-Room-Rug-Home-US-Decor.jpg',
+                'Saints Carpet',
+                69.95
+            )
+        ];
+        this.renderProducts();
+    }
+    
+    renderProducts() {
+        for(const prod of this.#products) {
+            new ProductItem(prod, 'prod-list');
+        }
     }
 
     render() {        
         this.createRootElement('ul', 'product-list', [
             new ElementAttribute('id', 'prod-list')
         ]);
-        for(const prod of this.products) {
-            const productItem = new ProductItem(prod, 'prod-list');
-            productItem.render();
-        }        
+        if(this.products && this.#products.length > 0) {
+            this.renderProducts();
+        }      
     }
 }
 
 class Shop {
+    constructor() {
+        this.render();
+    }
+
     render() {
         this.cart = new ShoppingCart('app');
-        this.cart.render();
-        const productLst = new ProductList('app');
-        productLst.render();
+        new ProductList('app');
     }
 }
 
@@ -142,8 +169,7 @@ class App {
     static cart;
 
     static init() {
-        const shop = new Shop();
-        shop.render();
+        const shop = new Shop();        
         this.cart = shop.cart;
     }
 
